@@ -14,8 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   characterGO: {fileID: 0}
   charName: name
+  position:
+  - 3.0929925e-11
+  - 1.5
+  - 1.142602
   level: 1
   maxHealth: 100
   currHealth: 100
   maxEnergy: 100
   currEnergy: 100
+  speed: 25

@@ -8,8 +8,8 @@ public class WorldChar : MonoBehaviour
     private float movSpeed = 1;
     //private bool isAttacked = false;
 
-    public CharacterStatus playerStatus;
-    public CharacterStatus enemyStatus;
+    //public CharacterStatus playerStatus;
+    //public CharacterStatus enemyStatus;
 
     public void Move(Vector3 dir)
     {
