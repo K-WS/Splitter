@@ -10,17 +10,23 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a7e54155ebb5aea44be46e2ad8d1a372, type: 3}
-  m_Name: enemyStatus
+  m_Name: fireStatus
   m_EditorClassIdentifier: 
   characterGO: {fileID: 0}
-  charName: name
+  charName: Fire
   position:
-  - 0
-  - 0
-  - 0
+  - -0.5183393
+  - 1.5
+  - 1.3060118
   level: 1
-  maxHealth: 100
-  currHealth: 100
-  maxEnergy: 100
-  currEnergy: 100
-  speed: 15
+  maxHealth: 250
+  maxEnergy: 135
+  attack: 20
+  defense: 10
+  speed: 25
+  currHealth: 148
+  currEnergy: 87
+  currSPD: 30
+  boostATK: 0
+  boostDEF: 0
+  boostSPD: 0

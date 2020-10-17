@@ -13,14 +13,20 @@ MonoBehaviour:
   m_Name: playerStatus
   m_EditorClassIdentifier: 
   characterGO: {fileID: 0}
-  charName: name
+  charName: Main
   position:
-  - 3.0929925e-11
+  - -0.5183393
   - 1.5
-  - 1.142602
+  - 1.3060118
   level: 1
-  maxHealth: 100
-  currHealth: 100
-  maxEnergy: 100
-  currEnergy: 100
+  maxHealth: 250
+  maxEnergy: 135
+  attack: 20
+  defense: 10
   speed: 25
+  currHealth: 240
+  currEnergy: 135
+  currSPD: 20
+  boostATK: 0
+  boostDEF: 0
+  boostSPD: 0

@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a7e54155ebb5aea44be46e2ad8d1a372, type: 3}
+  m_Name: iceStatus
+  m_EditorClassIdentifier: 
+  characterGO: {fileID: 0}
+  charName: Ice
+  position:
+  - -0.5183393
+  - 1.5
+  - 1.3060118
+  level: 1
+  maxHealth: 250
+  maxEnergy: 135
+  attack: 20
+  defense: 10
+  speed: 25
+  currHealth: 148
+  currEnergy: 87
+  currSPD: 30
+  boostATK: 0
+  boostDEF: 0
+  boostSPD: 0
