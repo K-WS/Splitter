@@ -4,6 +4,7 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "HealthStatusData",menuName = "StatusObjects/Health", order = 1)]
 public class CharacterStatus : ScriptableObject
 {
+    //TODO: A lot of code here is meant for the main character, but everyone has access to it...
     public GameObject characterGO; //Should contain battle animations
     public string  charName = "name";
     public float[] position = new float[3];
@@ -22,36 +23,59 @@ public class CharacterStatus : ScriptableObject
     public float currEnergy = 100;
 
     /// <summary>
-    /// Optional stats that can be affected during battle
+    /// Background stats that affect things during battle
     /// </summary>
     
-    //public int currATK = 20;
-    //public int currDEF = 10;
-    public int currSPD = 25;
+    public int currSPD = 25; // Turn buffer
+    public int HPSplit = 0; // How much HP main character can provide, ~30%
 
 
     /// <summary>
     /// Buffs and debuffs, currently FLAT, but beware going negative.
     /// </summary>
-    public int boostATK = 0; //More or less attack
-    public int boostDEF = 0; //More or less defense
+    public int boostATK = 0; //More/less attack
+    public int boostDEF = 0; //More/less defense
     public int boostSPD = 0; //Haste effects (higher turn rate/speed)
 
 
     public void resetStats()
     {
-        //currATK = attack;
-        //currDEF = defense;
         currSPD = speed;
 
         boostATK = 0;
         boostDEF = 0;
         boostSPD = 0;
+
+        HPSplit = Mathf.FloorToInt(maxHealth / 100f * 30f);
     }
 
     public void BufferUP()
     {
         currSPD += speed + boostSPD;
+    }
+
+    public void SplitFromMain(CharacterStatus status)
+    {
+        maxHealth -= HPSplit;
+        currHealth -= HPSplit;
+        status.maxHealth = HPSplit;
+        status.currHealth = HPSplit;
+    }
+
+    public void ReturnToMain(CharacterStatus status)
+    {
+        maxHealth += status.maxHealth;
+        currHealth += status.currHealth;
+    }
+
+    public void ResetHP()
+    {
+        //Warning: This is intended for enemies in battle, MC outside of it.
+        currHealth = maxHealth;
+    }
+    public void ResetEN()
+    {
+        currEnergy = maxEnergy;
     }
 
 

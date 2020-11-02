@@ -20,13 +20,14 @@ MonoBehaviour:
   - 1.3060118
   level: 1
   maxHealth: 250
-  maxEnergy: 135
-  attack: 20
+  maxEnergy: 74
+  attack: 22
   defense: 10
-  speed: 25
+  speed: 22
   currHealth: 148
-  currEnergy: 87
+  currEnergy: 74
   currSPD: 30
+  HPSplit: 0
   boostATK: 0
   boostDEF: 0
   boostSPD: 0

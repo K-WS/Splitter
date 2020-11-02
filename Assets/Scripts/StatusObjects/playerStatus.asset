@@ -15,18 +15,19 @@ MonoBehaviour:
   characterGO: {fileID: 0}
   charName: Main
   position:
-  - -0.5183393
+  - -0.70986426
   - 1.5
-  - 1.3060118
+  - 1.4438176
   level: 1
-  maxHealth: 250
+  maxHealth: 261
   maxEnergy: 135
   attack: 20
   defense: 10
   speed: 25
-  currHealth: 240
+  currHealth: 261
   currEnergy: 135
-  currSPD: 20
+  currSPD: 30
+  HPSplit: 78
   boostATK: 0
   boostDEF: 0
   boostSPD: 0

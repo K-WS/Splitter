@@ -1,64 +1,85 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using TMPro;
-using UnityEditor.PackageManager;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class StatusHUD : MonoBehaviour
 {
-    public Image P1HPBar;
-    public TextMeshProUGUI P1HPVal;
-    public Image P1ENBar;
-    public TextMeshProUGUI P1ENVal;
+    public GameObject P1HP;
+    public GameObject P1EN;
 
-    public Image P2HPBar;
-    public TextMeshProUGUI P2HPVal;
-    public Image P2ENBar;
-    public TextMeshProUGUI P2ENVal;
+    public GameObject P2HP;
+    public GameObject P2EN;
 
-    public Image P3HPBar;
-    public TextMeshProUGUI P3HPVal;
-    public Image P3ENBar;
-    public TextMeshProUGUI P3ENVal;
+    public GameObject P3HP;
+    public GameObject P3EN;
 
     /// <summary>
     /// Initializer to automatically set the HP values cased on CharacterStatus ScriptableObject given...
     /// and the integer to know which charcter...
+    /// On split characters, call this after their ScriptableObject HP vals updated
     /// </summary>
     public void SetStatusHUD(int who, CharacterStatus status)
     {
-        float curHP = status.currHealth * (100f / status.maxHealth);
-        float curEN = status.currEnergy * (100f / status.maxEnergy);
-
         switch (who)
         {
             case 1:
-                P1HPBar.fillAmount = curHP / 100f;
-                P1HPVal.SetText($"{status.currHealth}/{status.maxHealth}");
-
-                P1ENBar.fillAmount = curEN / 100f;
-                P1ENVal.SetText($"{status.currEnergy}/{status.maxEnergy}");
+                setCharHUD(status, P1HP, P1EN);
                 break;
             case 2:
-                P2HPBar.fillAmount = curHP / 100f;
-                P2HPVal.SetText($"{status.currHealth}/{status.maxHealth}");
-
-                P2ENBar.fillAmount = curEN / 100f;
-                P2ENVal.SetText($"{status.currEnergy}/{status.maxEnergy}");
+                setCharHUD(status, P2HP, P2EN);
                 break;
             case 3:
-                P3HPBar.fillAmount = curHP / 100f;
-                P3HPVal.SetText($"{status.currHealth}/{status.maxHealth}");
-
-                P3ENBar.fillAmount = curEN / 100f;
-                P3ENVal.SetText($"{status.currEnergy}/{status.maxEnergy}");
+                setCharHUD(status, P3HP, P3EN);
                 break;
             default:
                 Debug.LogError("A correct 'who' value was not provided");
                 break;
         }   
     }
+
+    private void setCharHUD(CharacterStatus status, GameObject HP, GameObject EN)
+    {
+
+        Image HPBar = HP.transform.GetChild(0).gameObject.GetComponent<Image>();
+        TextMeshProUGUI HPVal = HP.transform.GetChild(1).gameObject.GetComponent<TextMeshProUGUI>();
+
+        Image ENBar = EN.transform.GetChild(0).gameObject.GetComponent<Image>();
+        TextMeshProUGUI ENVal = EN.transform.GetChild(1).gameObject.GetComponent<TextMeshProUGUI>();
+
+        float curHP = status.currHealth * (100f / status.maxHealth);
+        float curEN = status.currEnergy * (100f / status.maxEnergy);
+
+        HPBar.fillAmount = curHP / 100f;
+        HPVal.SetText($"{status.currHealth}/{status.maxHealth}");
+
+        ENBar.fillAmount = curEN / 100f;
+        ENVal.SetText($"{status.currEnergy}/{status.maxEnergy}");
+    }
+
+    public void setUIVisible(int who, bool visible)
+    {
+        switch (who)
+        {
+            case 1:
+                P1HP.SetActive(visible);
+                P1EN.SetActive(visible);
+                break;
+            case 2:
+                P2HP.SetActive(visible);
+                P2EN.SetActive(visible);
+                break;
+            case 3:
+                P3HP.SetActive(visible);
+                P3EN.SetActive(visible);
+                break;
+            default:
+                Debug.LogError("A correct 'who' value was not provided");
+                break;
+        }
+    }
+
 
     /// <summary>
     /// The given character Loses a set amount of HP
@@ -96,13 +117,16 @@ public class StatusHUD : MonoBehaviour
         switch (who)
         {
             case 1:
-                HPBar = P1HPBar; HPVal = P1HPVal;
+                HPBar = P1HP.transform.GetChild(0).gameObject.GetComponent<Image>();
+                HPVal = P1HP.transform.GetChild(1).gameObject.GetComponent<TextMeshProUGUI>();
                 break;
             case 2:
-                HPBar = P2HPBar; HPVal = P2HPVal;
+                HPBar = P2HP.transform.GetChild(0).gameObject.GetComponent<Image>();
+                HPVal = P2HP.transform.GetChild(1).gameObject.GetComponent<TextMeshProUGUI>();
                 break;
             case 3:
-                HPBar = P3HPBar; HPVal = P3HPVal;
+                HPBar = P3HP.transform.GetChild(0).gameObject.GetComponent<Image>();
+                HPVal = P3HP.transform.GetChild(1).gameObject.GetComponent<TextMeshProUGUI>();
                 break;
             default:
                 Debug.LogError("A correct 'who' value was not provided");
@@ -111,6 +135,7 @@ public class StatusHUD : MonoBehaviour
 
         //Finding the main percentage?
         float percentage = 1 / (float)fillTimes;
+        float targetHealth = status.currHealth + amount * (isIncrease ? 1:-1);
 
         for (int fillStep = 0; fillStep < fillTimes; fillStep++)
         {
@@ -125,29 +150,30 @@ public class StatusHUD : MonoBehaviour
                 //Note - Be VERY CAREFUL here, I don't know how severe round to int can cause health vs damage to go,
                 //But SOMETHING is needed to prevent current health from turning into a visual float.
                 status.currHealth += _fAmount;
-                //status.currHealth += Mathf.RoundToInt(_fAmount);
                 HPBar.fillAmount += _dAmount;
                 if (status.currHealth <= status.maxHealth)
-                    HPVal.SetText(status.currHealth + "/" + status.maxHealth);
+                    //HPVal.SetText(status.currHealth + "/" + status.maxHealth);
+                    HPVal.SetText(Mathf.RoundToInt(status.currHealth) + "/" + status.maxHealth);
             }
             else
             {
                 status.currHealth -= _fAmount;
                 HPBar.fillAmount -= _dAmount;
                 if (status.currHealth >= 0)
-                    HPVal.SetText(status.currHealth + "/" + status.maxHealth);
+                    HPVal.SetText(Mathf.RoundToInt(status.currHealth) + "/" + status.maxHealth);
             }
 
             //For now, temporary fix like this
-            if(fillStep == fillTimes - 1)
+            /*if(fillStep == fillTimes - 1)
             {
                 status.currHealth = Mathf.RoundToInt(status.currHealth);
                 //HPBar.fillAmount = Mathf.Round(HPBar.fillAmount);
                 HPBar.fillAmount = Mathf.Round(HPBar.fillAmount*100)/100.0f;
                 HPVal.SetText(status.currHealth + "/" + status.maxHealth);
-            }
+            }*/
             yield return new WaitForSeconds(fillDelay);
         }
-
+        status.currHealth = targetHealth;
+        HPVal.SetText(status.currHealth + "/" + status.maxHealth);
     }
 }
