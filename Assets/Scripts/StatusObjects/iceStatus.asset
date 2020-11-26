@@ -13,21 +13,28 @@ MonoBehaviour:
   m_Name: iceStatus
   m_EditorClassIdentifier: 
   characterGO: {fileID: 0}
-  charName: Ice
+  charName: ice
+  fuseName: ice
+  isAlive: 1
   position:
   - -0.5183393
   - 1.5
   - 1.3060118
+  placement: 1
   level: 1
-  maxHealth: 75
+  maxHealth: 78
   maxEnergy: 67
   attack: 15
   defense: 15
   speed: 20
-  currHealth: 75
+  currHealth: 40
   currEnergy: 67
-  currSPD: 30
-  HPSplit: 75
+  currSPD: 10
+  HPSplit: 23
   boostATK: 0
   boostDEF: 0
   boostSPD: 0
+  DoT: 0
+  DoT_Turns: -1
+  Regen: 0
+  Regen_Turns: -1

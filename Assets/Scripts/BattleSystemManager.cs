@@ -23,6 +23,8 @@ public class BattleSystemManager : MonoBehaviour
     public GameObject player1Debug;
     public GameObject player2Debug;
     public GameObject player3Debug;
+    private List<GameObject> playerDebuggerList = new List<GameObject>();
+
     public GameObject enemy1Debug;
     public GameObject enemy2Debug;
     public GameObject enemy3Debug;
@@ -41,26 +43,27 @@ public class BattleSystemManager : MonoBehaviour
     
 
     public CharacterStatus P1Status;
-    private CharacterStatus P2Status = null;
-    private CharacterStatus P3Status = null;
     public CharacterStatus E1Status;
-    private CharacterStatus E2Status = null;
-    private CharacterStatus E3Status = null;
 
-    //MUST UPDATE LATER TO GET CORRECT FIELDS
+    private Dictionary<BattleState, CharacterStatus> statusDict = new Dictionary<BattleState, CharacterStatus>();
+
     public StatusHUD playerStatusHUD;
     public StatusHUD enemyStatusHUD;
     public RectTransform choicesPanel;
 
     private BattleState battleState;
 
-    //private bool hasClicked = true;
-
     private Queue<BattleState> turnQueue;
+    private int turn = 0;
+    public TextMeshProUGUI turner;
 
     //This would be better as a hashset... but how to give it characters?
     public List<CharacterStatus> splittableChars;
     public RectTransform splitPanel;
+
+    public RectTransform TurnQueuePanel;
+
+    public GameObject flyingBall;
 
 
 
@@ -69,6 +72,18 @@ public class BattleSystemManager : MonoBehaviour
         battleState = BattleState.START;
         turnQueue = new Queue<BattleState>();
         StartCoroutine(BeginBattle());
+
+        statusDict.Add(BattleState.P1TURN, P1Status);
+        statusDict.Add(BattleState.E1TURN, E1Status);
+        statusDict.Add(BattleState.P2TURN, null);
+        statusDict.Add(BattleState.P3TURN, null);
+        statusDict.Add(BattleState.E2TURN, null);
+        statusDict.Add(BattleState.E3TURN, null);
+
+        playerDebuggerList.Add(player1Debug);
+        playerDebuggerList.Add(player2Debug);
+        playerDebuggerList.Add(player3Debug);
+
     }
 
     /*
@@ -92,12 +107,13 @@ public class BattleSystemManager : MonoBehaviour
 
         //Call stat resets 
         P1Status.resetStats();
+        P1Status.fuseName = P1Status.charName;
         E1Status.resetStats();
         E1Status.ResetHP();
 
         // set the characters stats in HUD displays
-        playerStatusHUD.SetStatusHUD(1, P1Status);
-        enemyStatusHUD.SetStatusHUD(1, E1Status);
+        playerStatusHUD.SetStatusHUD(0, P1Status);
+        enemyStatusHUD.SetStatusHUD(0, E1Status);
 
         //In case enemies don't split, start with multiple, I need to make a check and reset them too.
 
@@ -119,7 +135,14 @@ public class BattleSystemManager : MonoBehaviour
 
     IEnumerator P1Turn()
     {
-        Debug.Log(battleState);
+        Debug.Log(battleState + " on placement " + statusDict[battleState].placement);
+        float DMG = statusDict[battleState].updateStatuses();
+
+        if (statusDict[battleState].boostATK > 0)
+            playerStatusHUD.Buff(statusDict[battleState].placement, true);
+        else
+            playerStatusHUD.Buff(statusDict[battleState].placement, false);
+
         yield return new WaitForSeconds(0.5f);
 
         //Set panel contents
@@ -128,7 +151,14 @@ public class BattleSystemManager : MonoBehaviour
 
     IEnumerator P2Turn()
     {
-        Debug.Log(battleState);
+        Debug.Log(battleState + " on placement " + statusDict[battleState].placement);
+        float DMG = statusDict[battleState].updateStatuses();
+
+        if (statusDict[battleState].boostATK > 0)
+            playerStatusHUD.Buff(statusDict[battleState].placement, true);
+        else
+            playerStatusHUD.Buff(statusDict[battleState].placement, false);
+
         yield return new WaitForSeconds(0.5f);
 
         SetPanel(false, false, true);
@@ -136,7 +166,14 @@ public class BattleSystemManager : MonoBehaviour
 
     IEnumerator P3Turn()
     {
-        Debug.Log(battleState);
+        Debug.Log(battleState + " on placement " + statusDict[battleState].placement);
+        float DMG = statusDict[battleState].updateStatuses();
+
+        if (statusDict[battleState].boostATK > 0)
+            playerStatusHUD.Buff(statusDict[battleState].placement, true);
+        else
+            playerStatusHUD.Buff(statusDict[battleState].placement, false);
+
         yield return new WaitForSeconds(0.5f);
 
         SetPanel(false, false, true);
@@ -148,43 +185,79 @@ public class BattleSystemManager : MonoBehaviour
         choicesPanel.GetChild(2).gameObject.SetActive(fuse);     //Fuse   Button
         choicesPanel.GetChild(3).gameObject.SetActive(split);    //Split  Button
         choicesPanel.GetChild(4).gameObject.SetActive(returner); //Return Button
-        choicesPanel.GetChild(5).gameObject.SetActive(false);    //Split  Panel, always default false
+        SetSidePanel(false, false, false, false, false, false, false);
+    }
+
+    private void SetSidePanel(bool split, bool main, bool ice, bool arcane, bool fire, bool fuse, bool heal)
+    {
+        choicesPanel.GetChild(5).gameObject.SetActive(split);    //Split  Panel, always default false
+        choicesPanel.GetChild(6).gameObject.SetActive(main);     //Main   Char Special moves, same
+        choicesPanel.GetChild(7).gameObject.SetActive(ice);      //Ice    Char Special moves, same
+        choicesPanel.GetChild(8).gameObject.SetActive(arcane);   //Arcane Char Special moves, same
+        choicesPanel.GetChild(9).gameObject.SetActive(fire);     //Fire   Char Special moves, same
+        choicesPanel.GetChild(10).gameObject.SetActive(fuse);    //Fuse   Panel, always default false too
+        choicesPanel.GetChild(11).gameObject.SetActive(heal);    //Heal   Panel, always default false too
     }
 
     IEnumerator E1Turn()
     {
         Debug.Log(battleState);
-        yield return new WaitForSeconds(0.5f);
 
-        (CharacterStatus, int) toAttack = EChooseTarget();
-        yield return StartCoroutine(EnemyDoesAttack(enemy1Debug, E1Status, toAttack.Item1, toAttack.Item2));
+        yield return new WaitForSeconds(0.5f); SetSidePanel(false, false, false, false, false, false, false);
+
+        int DMG = statusDict[battleState].updateStatuses();
+        if(DMG > 0)
+        {
+            enemyStatusHUD.LoseHP(0, statusDict[battleState], DMG);
+            yield return new WaitForSeconds(0.6f);
+
+            if (statusDict[battleState].currHealth <= 0)
+            {
+                yield return StartCoroutine(IsMainEnemyDead());
+                yield break;
+            }
+
+        }
+
+        if (statusDict[battleState].DoT_Turns > 0)
+            enemyStatusHUD.Debuff(statusDict[battleState].placement, true);
+        else
+            enemyStatusHUD.Debuff(statusDict[battleState].placement, false);
+
+
+        (CharacterStatus, int, GameObject) toAttack = EChooseTarget();
+        yield return StartCoroutine(EnemyDoesAttack(enemy1Debug, E1Status, toAttack.Item3, toAttack.Item1, toAttack.Item2));
     }
 
     IEnumerator E2Turn()
     {
+        int DMG = statusDict[battleState].updateStatuses();
         //For now I'm not working on multiple enemies, so just default to E1 in case of a mistake
         yield return StartCoroutine(E1Turn());
     }
     IEnumerator E3Turn()
     {
+        int DMG = statusDict[battleState].updateStatuses();
         yield return StartCoroutine(E1Turn());
     }
 
 
 
-    private (CharacterStatus, int who) EChooseTarget()
+    private (CharacterStatus, int, GameObject) EChooseTarget()
     {
         List<CharacterStatus> activePlayers = new List<CharacterStatus>();
         activePlayers.Add(P1Status);
-        if (P2Status != null)
-            activePlayers.Add(P2Status);
-        if (P3Status != null)
-            activePlayers.Add(P3Status);
+        if (statusDict[BattleState.P2TURN] != null)
+            activePlayers.Add(statusDict[BattleState.P2TURN]);
+        if (statusDict[BattleState.P3TURN] != null)
+            activePlayers.Add(statusDict[BattleState.P3TURN]);
 
+        int choice = UnityEngine.Random.Range(0, activePlayers.Count);
 
-        //TODO: MAKE IT ACTUALLY PICK RANDOM, I THINK I MIGHT HAVE TO PUT "who" IN THE SCRIPTABLEOBJECT
-        //TODO: BECAUSE IF P2 IS MISSING, HOW WILL P3 GET THE CORRECT "who" VALUE?
-        return (activePlayers[0], 1);
+        //playerDebuggerList[statusDict[battleState].placement
+        return (activePlayers[choice],
+                activePlayers[choice].placement, 
+                playerDebuggerList[activePlayers[choice].placement]);
     }
 
 
@@ -217,30 +290,86 @@ public class BattleSystemManager : MonoBehaviour
 
     IEnumerator P1ATK()
     {
+        StartCoroutine(MoveOverSeconds(flyingBall,player1Debug.transform.position, enemy1Debug.transform.position, 0.5f));
         yield return new WaitForSeconds(0.5f);
-        yield return StartCoroutine(PlayerDoesAttack(player1Debug, P1Status, E1Status, 1));
+        yield return StartCoroutine(PlayerDoesAttack(player1Debug, statusDict[battleState], E1Status, 0));
     }
 
     IEnumerator P2ATK()
     {
+        StartCoroutine(MoveOverSeconds(flyingBall, player2Debug.transform.position, enemy1Debug.transform.position, 0.5f));
         yield return new WaitForSeconds(0.5f);
-        yield return StartCoroutine(PlayerDoesAttack(player2Debug, P2Status, E1Status, 1));
+        yield return StartCoroutine(PlayerDoesAttack(player2Debug, statusDict[battleState], E1Status, 0));
     }
 
     IEnumerator P3ATK()
     {
+        StartCoroutine(MoveOverSeconds(flyingBall, player3Debug.transform.position, enemy1Debug.transform.position, 0.5f));
         yield return new WaitForSeconds(0.5f);
-        yield return StartCoroutine(PlayerDoesAttack(player3Debug, P3Status, E1Status, 1));
+        yield return StartCoroutine(PlayerDoesAttack(player3Debug, statusDict[battleState], E1Status, 0));
     }
 
     public void OnEnergyButtonPress()
     {
-        //Should give access to options on what abilities to use
+        switch(statusDict[battleState].fuseName)
+        {
+            case "normal":
+                SetSidePanel(false, true, false, false, false, false, false);
+                break;
+            case "ice":
+                SetSidePanel(false, false, true, false, false, false, false);
+                break;
+            case "arcane":
+                SetSidePanel(false, false, false, true, false, false, false);
+                break;
+            case "fire":
+                SetSidePanel(false, false, false, false, true, false, false);
+                break;
+        }
     }
+
+    /*
+     ---------------------------------------------------------
+     -------------------------Fusing--------------------------
+     ---------------------------------------------------------
+     */
 
     public void OnFuseButtonPress()
     {
-        //Infuses main player with a splittable
+        //Infuses main player with a splittable, does not need special conditions to be opened
+       SetSidePanel(false, false, false, false, false, true, false);
+    }
+
+    public void OnNormalFuseButtonPress() { OnFuseCheckButtonPress("normal"); }
+    public void OnIceFuseButtonPress() { OnFuseCheckButtonPress("ice"); }
+    public void OnArcaneFuseButtonPress() { OnFuseCheckButtonPress("arcane"); }
+    public void OnFireFuseButtonPress() { OnFuseCheckButtonPress("fire"); }
+
+    public void OnFuseCheckButtonPress(string name)
+    {
+
+        string P1 = statusDict[BattleState.P1TURN].fuseName;
+        string P2 = "";
+        string P3 = "";
+        if (statusDict[BattleState.P2TURN] != null) P2 = statusDict[BattleState.P2TURN].charName;
+        if (statusDict[BattleState.P3TURN] != null) P3 = statusDict[BattleState.P3TURN].charName;
+
+        if (name != P1 && name != P2 && name != P3)
+            StartCoroutine(PerformFuse(name));
+    }
+
+    IEnumerator PerformFuse(string name)
+    {
+        choicesPanel.gameObject.SetActive(false);
+        yield return new WaitForSeconds(0.5f);
+
+        //TODO: Set fuse name and fuse color, Make sure that energy picking checks FuseName to decide
+        //TODO: Which panel to open... attacking animations are going to be complicated.
+
+        statusDict[BattleState.P1TURN].fuseName = name;
+        p1DebugMat.color = debugSetColor(name);
+
+        StartCoroutine(WhoGoesNext());
     }
 
 
@@ -253,83 +382,141 @@ public class BattleSystemManager : MonoBehaviour
     {
 
         // 1. Check if the player is allowed to split (enough HP + free slot)
-        if (P1Status.currHealth > P1Status.HPSplit && (P2Status == null || P3Status == null)) 
+        if (P1Status.currHealth > P1Status.HPSplit && (statusDict[BattleState.P2TURN] == null || statusDict[BattleState.P3TURN] == null)) 
         {
-            splitPanel.gameObject.SetActive(true);
+            SetSidePanel(true, false, false, false, false, false, false);
         }
         else
         {
             Debug.Log("No free spaces or not enough HP");
         }
     }
-
-    public void OnSplitCheckButtonPress()
+    public void OnIceSplitButtonPress()
     {
-        Debug.Log("Split Check Was pressed");
-        string name = splitPanel.GetChild(0).GetComponent<TMP_InputField>().text.ToLower();
+        OnSplitCheckButtonPress(splittableChars[0]);
+    }
+    public void OnArcaneSplitButtonPress()
+    {
+        OnSplitCheckButtonPress(splittableChars[1]);
+    }
+    public void OnFireSplitButtonPress()
+    {
+        OnSplitCheckButtonPress(splittableChars[2]);
+    }
+
+    private void OnSplitCheckButtonPress(CharacterStatus status)
+    {
+        string name = status.charName;
+
+        string P1 = statusDict[BattleState.P1TURN].fuseName;
         string P2 = "";
         string P3 = "";
-        if (P2Status != null) P2 = P2Status.charName.ToLower();
-        if (P3Status != null) P3 = P3Status.charName.ToLower();
+        if (statusDict[BattleState.P2TURN] != null) P2 = statusDict[BattleState.P2TURN].charName;
+        if (statusDict[BattleState.P3TURN] != null) P3 = statusDict[BattleState.P3TURN].charName;
 
-        Debug.Log(name);
-
-        //Go through choices
-        foreach (CharacterStatus chr in splittableChars)
+        if(name != P1 && name != P2 && name != P3)
         {
-            string choiceName = chr.charName.ToLower();
-            Debug.Log(choiceName);
-            if(choiceName == name && choiceName != P2 && choiceName != P3)
-            {
-                if (P2Status == null)
-                    StartCoroutine(PerformSplit(chr, 2));
-                else
-                    StartCoroutine(PerformSplit(chr, 3));
-                break;
-            }
+            if (statusDict[BattleState.P2TURN] == null)
+                StartCoroutine(PerformSplit(status, 1));
+            else
+                StartCoroutine(PerformSplit(status, 2));
         }
-        
     }
+
     IEnumerator PerformSplit(CharacterStatus character, int who)
     {
         choicesPanel.gameObject.SetActive(false);
         yield return new WaitForSeconds(0.5f);
 
-        if (who == 2)
+        if (who == 1)
         {
-            P2Status = character;
-            P2Status.resetStats();
-            P2Status.ResetEN();
-            P1Status.SplitFromMain(P2Status);
+            statusDict[BattleState.P2TURN] = character;
+            statusDict[BattleState.P2TURN].resetStats();
+            statusDict[BattleState.P2TURN].ResetEN();
+            statusDict[BattleState.P2TURN].currSPD = 0;
+            statusDict[BattleState.P2TURN].placement = who;
 
             playerStatusHUD.setUIVisible(who, true);
 
-            playerStatusHUD.SetStatusHUD(1, P1Status);
-            playerStatusHUD.SetStatusHUD(who, P2Status);
+            P1Status.SplitFromMain(statusDict[BattleState.P2TURN]);
+
+            playerStatusHUD.SetStatusHUD(0, P1Status);
+            playerStatusHUD.SetStatusHUD(who, statusDict[BattleState.P2TURN]);
+
+            
 
             player2Debug.SetActive(true);
-            p2DebugMat.color = debugSetColor(P2Status.charName.ToLower());
+            p2DebugMat.color = debugSetColor(statusDict[BattleState.P2TURN].charName);
         }
             
-        else //3 
+        else //2
         {
-            P3Status = character;
-            P3Status.resetStats();
-            P1Status.SplitFromMain(P3Status);
+            statusDict[BattleState.P3TURN] = character;
+            statusDict[BattleState.P3TURN].resetStats();
+            statusDict[BattleState.P3TURN].ResetEN();
+            statusDict[BattleState.P3TURN].currSPD = 0;
+            statusDict[BattleState.P3TURN].placement = who;
 
             playerStatusHUD.setUIVisible(who, true);
 
-            playerStatusHUD.SetStatusHUD(1, P1Status);
-            playerStatusHUD.SetStatusHUD(who, P3Status);
+            P1Status.SplitFromMain(statusDict[BattleState.P3TURN]);
 
-            player3Debug.SetActive(true);
-            p3DebugMat.color = debugSetColor(P3Status.charName.ToLower());
-        }
+            playerStatusHUD.SetStatusHUD(0, P1Status);
+            playerStatusHUD.SetStatusHUD(who, statusDict[BattleState.P3TURN]);
+
             
 
-
-
+            player3Debug.SetActive(true);
+            p3DebugMat.color = debugSetColor(statusDict[BattleState.P3TURN].charName);
+        }
+            
         StartCoroutine(WhoGoesNext());
+    }
+
+    public void OnReturnButtonPress()
+    {
+        choicesPanel.gameObject.SetActive(false);
+
+        //You need to check BattleState to know which character should recombine
+        //Then recombine the HP and stuff before disabling the character
+        switch (battleState)
+        {
+            case BattleState.P2TURN:
+                StartCoroutine(Recombination(1));
+                break;
+            case BattleState.P3TURN:
+                StartCoroutine(Recombination(2));
+                break;
+
+        }
+    }
+
+    IEnumerator Recombination(int who)
+    {
+        yield return new WaitForSeconds(0.5f);
+
+        //Hide UI 
+        playerStatusHUD.setUIVisible(who, false);
+
+        //Remove buffs/debuffs
+        //TODO: This could be the spot to do buff passing and exponentiality
+        playerStatusHUD.Buff(statusDict[battleState].placement, false);
+        playerStatusHUD.Debuff(statusDict[battleState].placement, false);
+
+        //Re-combine
+        P1Status.ReturnToMain(statusDict[battleState]);
+        statusDict[battleState] = null;
+
+        //Disable the Debug model
+        if (who == 1)
+            player2Debug.SetActive(false);
+        else //2
+            player3Debug.SetActive(false);
+
+        //Update Main UI
+        playerStatusHUD.SetStatusHUD(0, P1Status);
+
+        yield return StartCoroutine(WhoGoesNext());
     }
 
     public Color debugSetColor(string name)
@@ -339,7 +526,7 @@ public class BattleSystemManager : MonoBehaviour
         switch (name)
         {
             case "fire":
-                col.r = 1; col.g = 0.13f; col.b = 0;
+                col.r = 1f; col.g = 0.54f; col.b = 0;
                 break;
             case "ice":
                 col.r = 0; col.g = 1; col.b = 1;
@@ -350,74 +537,294 @@ public class BattleSystemManager : MonoBehaviour
             case "normal":
                 col.r = 1; col.g = 1; col.b = 1;
                 break;
+            case "enemy":
+                col.r = 1; col.g = 0; col.b = 0; col.a = 1;
+                break;
+            case "null":
+                col.r = 0; col.g = 0; col.b = 0; col.a = 0;
+                break;
         }
 
         return col;
     }
 
-    public void OnSplitBackButtonPress()
-    {
-        splitPanel.gameObject.SetActive(false);
-    }
+    
 
-    public void OnReturnButtonPress()
+    /*
+     ---------------------------------------------------------
+     -------------------Character Abilities-------------------
+     ---------------------------------------------------------
+     */
+    //TODO: At the beginning of each of these, add an energy check to see if suitable
+    public void EN_Main_StrongAttack()
     {
-        choicesPanel.gameObject.SetActive(false);
-        
-        //You need to check BattleState to know which character should recombine
-        //Then recombine the HP and stuff before disabling the character
-        switch (battleState)
+        if(statusDict[battleState].currEnergy >= 20)
         {
-            case BattleState.P2TURN:
-                StartCoroutine(Recombination(2));
-                break;
-            case BattleState.P3TURN:
-                StartCoroutine(Recombination(3));
-                break;
-
+            Debug.Log(statusDict[battleState].placement);
+            playerStatusHUD.LoseEN(statusDict[battleState].placement, statusDict[battleState], 20);
+            choicesPanel.gameObject.SetActive(false);
+            StartCoroutine(STRATK(playerDebuggerList[statusDict[battleState].placement], statusDict[battleState], E1Status, 0));
         }
+
     }
 
-    IEnumerator Recombination(int who)
+    IEnumerator STRATK(GameObject player, CharacterStatus PStatus, CharacterStatus target, int who)
     {
-        //TODO: Not an actual TODO, but note, YOU CAN'T PASS STATUSES, THEY WON'T UPDATE
+        //player.GetComponent<Animator>().SetTrigger("Attack");
+        StartCoroutine(MoveOverSeconds(flyingBall, player.transform.position, enemy1Debug.transform.position, 0.5f));
         yield return new WaitForSeconds(0.5f);
 
-        //Hide UI 
-        playerStatusHUD.setUIVisible(who, false);
+        float acc = 1;
+        int damage = Mathf.CeilToInt(2*acc *
+                                    ((PStatus.attack + PStatus.boostATK) * UnityEngine.Random.Range(0.7f, 1f) /
+                                       Mathf.Ceil(0.1f * target.defense)));
+        enemyStatusHUD.LoseHP(who, target, damage);
 
-        //Disable the Debug model
-        if (who == 2)
+        yield return new WaitForSeconds(1f);
+        yield return StartCoroutine(IsMainEnemyDead());
+    }
+
+    public void EN_Main_Recover()
+    {
+        // A double up ability that does a good heal on alive targets
+        // while having a weaker heal and revive on defeated targets
+        // NEEDS A PICKABLE TARGET
+        if (statusDict[battleState].currEnergy >= 45)
         {
-            //Re-combine
-            P1Status.ReturnToMain(P2Status);
-            P2Status = null;
-            player2Debug.SetActive(false);
+            SetSidePanel(false, true, false, false, false, false, true);
+            Transform healChoices = choicesPanel.GetChild(11);
+            //healChoices.GetChild(0).GetComponent<UnityEngine.UI.Image>().color = debugSetColor(statusDict[battleState].fuseName);
 
-            //Update Main UI
-            playerStatusHUD.SetStatusHUD(1, P1Status);
+            if (statusDict[BattleState.P2TURN] == null)
+                healChoices.GetChild(1).gameObject.SetActive(false);
+            else
+            {
+                healChoices.GetChild(1).gameObject.SetActive(true);
+                healChoices.GetChild(1).GetComponent<UnityEngine.UI.Image>().color = debugSetColor(statusDict[BattleState.P2TURN].fuseName);
+            }
+
+            if (statusDict[BattleState.P3TURN] == null)
+                healChoices.GetChild(2).gameObject.SetActive(false);
+            else
+            {
+                healChoices.GetChild(2).gameObject.SetActive(true);
+                healChoices.GetChild(2).GetComponent<UnityEngine.UI.Image>().color = debugSetColor(statusDict[BattleState.P3TURN].fuseName);
+            }
         }
-            
-        else //3 
+    }
+
+    public void P1HealButton()
+    {
+        playerStatusHUD.LoseEN(statusDict[battleState].placement, statusDict[battleState], 45);
+        choicesPanel.gameObject.SetActive(false);
+        StartCoroutine(HealTarget(playerDebuggerList[statusDict[battleState].placement], statusDict[battleState], statusDict[BattleState.P1TURN], 0));
+    }
+
+    public void P2HealButton()
+    {
+        playerStatusHUD.LoseEN(statusDict[battleState].placement, statusDict[battleState], 45);
+        choicesPanel.gameObject.SetActive(false);
+        StartCoroutine(HealTarget(playerDebuggerList[statusDict[battleState].placement], statusDict[battleState], statusDict[BattleState.P2TURN], 1));
+    }
+
+    public void P3HealButton() 
+    {
+        playerStatusHUD.LoseEN(statusDict[battleState].placement, statusDict[battleState], 45);
+        choicesPanel.gameObject.SetActive(false);
+        StartCoroutine(HealTarget(playerDebuggerList[statusDict[battleState].placement], statusDict[battleState], statusDict[BattleState.P3TURN], 2));
+    }
+
+    IEnumerator HealTarget(GameObject player, CharacterStatus PStatus, CharacterStatus target, int who)
+    {
+        //player.GetComponent<Animator>().SetTrigger("Attack");
+        yield return new WaitForSeconds(0.5f);
+
+        int heal = 100;
+        playerStatusHUD.GainHP(who, target, heal);
+
+        if (!target.isAlive)
         {
-            P1Status.ReturnToMain(P3Status);
-            P3Status = null;
-            player3Debug.SetActive(false);
+            target.isAlive = true;
+            if(who == 1)
+            {
+                player2Debug.transform.Rotate(new Vector3(-90, 0, 0));
+                player2Debug.transform.position += new Vector3(0, 0.5f, 0);
+            }
+            if (who == 2)
+            {
+                player3Debug.transform.Rotate(new Vector3(-90, 0, 0));
+                player3Debug.transform.position += new Vector3(0, 0.5f, 0);
+            }
 
-            //Update Main UI
-            playerStatusHUD.SetStatusHUD(1, P1Status);
+
         }
-            
+
+        yield return new WaitForSeconds(1f);
+        yield return StartCoroutine(WhoGoesNext());
+    }
+    public void EN_Ice_IceBall()
+    {
+        if (statusDict[battleState].currEnergy >= 15)
+        {
+            playerStatusHUD.LoseEN(statusDict[battleState].placement, statusDict[battleState], 15);
+            choicesPanel.gameObject.SetActive(false);
+            StartCoroutine(IceBall(playerDebuggerList[statusDict[battleState].placement], statusDict[battleState], E1Status, 0));
+        }
+    }
+
+    IEnumerator IceBall(GameObject player, CharacterStatus PStatus, CharacterStatus target, int who)
+    {
+        StartCoroutine(MoveOverSeconds(flyingBall, player.transform.position, enemy1Debug.transform.position, 0.5f));
+        //player.GetComponent<Animator>().SetTrigger("Attack");
+        yield return new WaitForSeconds(0.5f);
+
+        float acc = 1;
+        int damage = Mathf.CeilToInt(1.3f * acc *
+                                    ((PStatus.attack + PStatus.boostATK) * UnityEngine.Random.Range(0.7f, 1f) /
+                                       Mathf.Ceil(0.1f * target.defense)));
+        Debug.Log($"Damage that Iceball should do is {damage}");
+
+        enemyStatusHUD.LoseHP(who, target, damage);
+
+        yield return new WaitForSeconds(1f);
+        yield return StartCoroutine(IsMainEnemyDead());
+    }
+
+    public void EN_Ice_Stagger()
+    {
+        if (statusDict[battleState].currEnergy >= 40)
+        {
+            playerStatusHUD.LoseEN(statusDict[battleState].placement, statusDict[battleState], 40);
+            choicesPanel.gameObject.SetActive(false);
+            StartCoroutine(Stagger(playerDebuggerList[statusDict[battleState].placement], statusDict[battleState], BattleState.E1TURN, 0));
+        }
+    }
+    IEnumerator Stagger(GameObject player, CharacterStatus PStatus, BattleState target, int who)
+    {
+        //player.GetComponent<Animator>().SetTrigger("Attack");
+        StartCoroutine(MoveOverSeconds(flyingBall, player.transform.position, enemy1Debug.transform.position, 0.5f));
+        yield return new WaitForSeconds(0.5f);
+
+        int i = 0;
+        foreach(BattleState state in turnQueue.ToArray())
+        {
+            if (target == state)
+            {
+                for (int j = i+1; j < TurnQueuePanel.transform.childCount - 1; j++)
+                {
+                    TurnQueuePanel.transform.GetChild(j).GetComponent<UnityEngine.UI.Image>().color = TurnQueuePanel.transform.GetChild(j + 1).GetComponent<UnityEngine.UI.Image>().color;
+                }
+            }
+            i++;
+        }
+
+        turnQueue = new Queue<BattleState>(turnQueue.Where(x => x != target));
 
 
-        //TODO: MAKE SURE TO CHECK IF THIS ACTUALLY NULLIFIES THE REAL STATUS
-        //nullify
-        
+        yield return new WaitForSeconds(1f);
+        yield return StartCoroutine(IsMainEnemyDead());
+    }
 
+        public void EN_Arcane_Bolt()
+    {
+        if (statusDict[battleState].currEnergy >= 15)
+        {
+            playerStatusHUD.LoseEN(statusDict[battleState].placement, statusDict[battleState], 15);
+            choicesPanel.gameObject.SetActive(false);
+            StartCoroutine(Bolt(playerDebuggerList[statusDict[battleState].placement], statusDict[battleState], E1Status, 0));
+        }
+    }
+
+    IEnumerator Bolt(GameObject player, CharacterStatus PStatus, CharacterStatus target, int who)
+    {
+        //player.GetComponent<Animator>().SetTrigger("Attack");
+        StartCoroutine(MoveOverSeconds(flyingBall, player.transform.position, enemy1Debug.transform.position, 0.5f));
+        yield return new WaitForSeconds(0.5f);
+
+        float acc = 1;
+        int damage = Mathf.CeilToInt(1.4f * acc *
+                                    ((PStatus.attack + PStatus.boostATK) * UnityEngine.Random.Range(0.7f, 1f) /
+                                       Mathf.Ceil(0.1f * target.defense)));
+        enemyStatusHUD.LoseHP(who, target, damage);
+
+        yield return new WaitForSeconds(1f);
+        yield return StartCoroutine(IsMainEnemyDead());
+    }
+
+    public void EN_Arcane_Power()
+    {
+        if (statusDict[battleState].currEnergy >= 40)
+        {
+            playerStatusHUD.LoseEN(statusDict[battleState].placement, statusDict[battleState], 40);
+            choicesPanel.gameObject.SetActive(false);
+            StartCoroutine(ATKUP(playerDebuggerList[statusDict[battleState].placement], statusDict[battleState]));
+        }
+    }
+
+    IEnumerator ATKUP(GameObject player, CharacterStatus PStatus)
+    {
+        //player.GetComponent<Animator>().SetTrigger("Attack");
+        yield return new WaitForSeconds(0.5f);
+
+        //TODO: Instead call some function in CharacterStatus that gives the icon?
+        PStatus.boostATK = 20;
+        UnityEngine.Debug.Log("Buffing "+ battleState +" on position " + statusDict[battleState].placement);
+        playerStatusHUD.Buff(statusDict[battleState].placement, true);
+
+        yield return new WaitForSeconds(1f);
         yield return StartCoroutine(WhoGoesNext());
     }
 
+    public void EN_Fire_Fireball()
+    {
+        if (statusDict[battleState].currEnergy >= 15)
+        {
+            playerStatusHUD.LoseEN(statusDict[battleState].placement, statusDict[battleState], 15);
+            choicesPanel.gameObject.SetActive(false);
+            StartCoroutine(Fireball(playerDebuggerList[statusDict[battleState].placement], statusDict[battleState], E1Status, 0));
+        }
+    }
 
+    IEnumerator Fireball(GameObject player, CharacterStatus PStatus, CharacterStatus target, int who)
+    {
+        //player.GetComponent<Animator>().SetTrigger("Attack");
+        StartCoroutine(MoveOverSeconds(flyingBall, player.transform.position, enemy1Debug.transform.position, 0.5f));
+        yield return new WaitForSeconds(0.5f);
+
+        float acc = 1;
+        int damage = Mathf.CeilToInt(1.6f * acc *
+                                    ((PStatus.attack + PStatus.boostATK) * UnityEngine.Random.Range(0.7f, 1f) /
+                                       Mathf.Ceil(0.1f * target.defense)));
+        enemyStatusHUD.LoseHP(who, target, damage);
+
+        yield return new WaitForSeconds(1f);
+        yield return StartCoroutine(IsMainEnemyDead());
+    }
+
+    public void EN_Fire_Flame()
+    {
+        if (statusDict[battleState].currEnergy >= 40)
+        {
+            playerStatusHUD.LoseEN(statusDict[battleState].placement, statusDict[battleState], 40);
+            choicesPanel.gameObject.SetActive(false);
+            StartCoroutine(Flame(playerDebuggerList[statusDict[battleState].placement], statusDict[battleState], E1Status, 0));
+        }
+    }
+    //TODO: Note, Bug or Feature, but the enemy will only die after a player turn has passed when DoT takes HP to 0
+    IEnumerator Flame(GameObject player, CharacterStatus PStatus, CharacterStatus target, int who)
+    {
+        //player.GetComponent<Animator>().SetTrigger("Attack");
+        StartCoroutine(MoveOverSeconds(flyingBall, player.transform.position, enemy1Debug.transform.position, 0.5f));
+        yield return new WaitForSeconds(0.5f);
+
+        target.DoT = 15;
+        target.DoT_Turns = 3;
+
+        enemyStatusHUD.Debuff(statusDict[BattleState.E1TURN].placement, true);
+
+        yield return new WaitForSeconds(1f);
+        yield return StartCoroutine(IsMainEnemyDead());
+    }
     /*
      ---------------------------------------------------------
      -------------------Attack and Win check------------------
@@ -458,14 +865,22 @@ public class BattleSystemManager : MonoBehaviour
         { yield return StartCoroutine(WhoGoesNext()); }
     }
 
-    IEnumerator EnemyDoesAttack(GameObject enemy, CharacterStatus EStatus, CharacterStatus target, int who)
+    IEnumerator EnemyDoesAttack(GameObject enemy, CharacterStatus EStatus, GameObject player, CharacterStatus target, int who)
     {
         //TODO: Some place will eventually need a spot for enemies to pick a special attack based on chance?
         // Animate attack
         //enemy.GetComponent<Animator>().SetTrigger("Attack");
         //yield return new WaitForSeconds(1);
+        //TODO: Decide who gets attacked and based on that pick them as target (debug)
+        StartCoroutine(MoveOverSeconds(flyingBall, enemy.transform.position, player.transform.position, 0.5f));
+        yield return new WaitForSeconds(0.5f);
 
-        playerStatusHUD.LoseHP(who, target, 10);
+        float acc = 1;
+        int damage = Mathf.CeilToInt(1.5f * acc *
+                                    ((EStatus.attack + EStatus.boostATK) * UnityEngine.Random.Range(0.7f, 1f) /
+                                       Mathf.Ceil(0.1f * target.defense)));
+
+        playerStatusHUD.LoseHP(who, target, damage);
         yield return new WaitForSeconds(1f);
 
         yield return StartCoroutine(IsPlayerDead());
@@ -475,6 +890,32 @@ public class BattleSystemManager : MonoBehaviour
     {
         //TODO: WARNING     
         //TODO: THERE IS CURRENTLY NO TRIGGER FOR SPLITTED CHARACTERS TO BE DEFEATED AND DEACTIVATED
+
+        if(statusDict[BattleState.P2TURN] != null)
+        {
+            if (statusDict[BattleState.P2TURN].isAlive && statusDict[BattleState.P2TURN].currHealth <= 0)
+            {
+                statusDict[BattleState.P2TURN].isAlive = false;
+                player2Debug.transform.Rotate(new Vector3(90, 0, 0));
+                player2Debug.transform.position -= new Vector3(0, 0.5f, 0);
+
+                //This shouldn't be necessary when you don't debug HP to 0
+                playerStatusHUD.SetStatusHUD(1, statusDict[BattleState.P2TURN]);
+            }
+        }
+
+        if (statusDict[BattleState.P3TURN] != null)
+        {
+            if (statusDict[BattleState.P3TURN].isAlive && statusDict[BattleState.P3TURN].currHealth <= 0)
+            {
+                statusDict[BattleState.P3TURN].isAlive = false;
+                player3Debug.transform.Rotate(new Vector3(90, 0, 0));
+                player3Debug.transform.position -= new Vector3(0, 0.5f, 0);
+
+                //Here as well
+                playerStatusHUD.SetStatusHUD(2, statusDict[BattleState.P3TURN]);
+            }
+        }
 
         if (P1Status.currHealth <= 0)
         {
@@ -495,10 +936,14 @@ public class BattleSystemManager : MonoBehaviour
     IEnumerator EndBattle()
     {
         //RECOMBINE CHARACTERS
-        if (P2Status != null)
-            P1Status.ReturnToMain(P2Status);
-        if (P3Status != null)
-            P1Status.ReturnToMain(P3Status);
+        if (statusDict[BattleState.P2TURN] != null)
+            P1Status.ReturnToMain(statusDict[BattleState.P2TURN]);
+        if (statusDict[BattleState.P3TURN] != null)
+            P1Status.ReturnToMain(statusDict[BattleState.P3TURN]);
+
+        //Turn Main back to normal as well
+        statusDict[BattleState.P1TURN].fuseName = "normal";
+        p1DebugMat.color = debugSetColor("normal");
 
         if (battleState == BattleState.WIN)
         {
@@ -523,9 +968,6 @@ public class BattleSystemManager : MonoBehaviour
     {
         //Debug.Log("Who Goes Next?");
         //0. Check if stack is empty, if not, then you know who should go next
-        Debug.Log(turnQueue.Count);
-        Debug.Log("P2Status is ");
-        Debug.Log(P2Status);
         if (turnQueue.Count == 0)
         {
             //Debug.Log("Queue is empty");
@@ -533,18 +975,18 @@ public class BattleSystemManager : MonoBehaviour
             List<(int, int, BattleState, CharacterStatus)> speeds = new List<(int, int, BattleState, CharacterStatus)>();
 
             //if (P1Status.currSPD >= P1Status.speed + P1Status.boostSPD)
-            speeds.Add((P1Status.currSPD, P1Status.speed + P1Status.boostSPD, BattleState.P1TURN, P1Status));
+            speeds.Add((statusDict[BattleState.P1TURN].currSPD, statusDict[BattleState.P1TURN].speed + statusDict[BattleState.P1TURN].boostSPD, BattleState.P1TURN, statusDict[BattleState.P1TURN]));
 
-            if (P2Status != null)
-                speeds.Add((P2Status.currSPD, P2Status.speed + P2Status.boostSPD, BattleState.P2TURN, P2Status));
-            if (P3Status != null)
-                speeds.Add((P3Status.currSPD, P3Status.speed + P3Status.boostSPD, BattleState.P3TURN, P3Status));
-            if (E1Status != null)
-                speeds.Add((E1Status.currSPD, E1Status.speed + E1Status.boostSPD, BattleState.E1TURN, E1Status));
-            if (E2Status != null)
-                speeds.Add((E2Status.currSPD, E2Status.speed + E2Status.boostSPD, BattleState.E2TURN, E2Status));
-            if (E3Status != null)
-                speeds.Add((E3Status.currSPD, E3Status.speed + E3Status.boostSPD, BattleState.E3TURN, E3Status));
+            if (statusDict[BattleState.P2TURN] != null && statusDict[BattleState.P2TURN].isAlive)
+                speeds.Add((statusDict[BattleState.P2TURN].currSPD, statusDict[BattleState.P2TURN].speed + statusDict[BattleState.P2TURN].boostSPD, BattleState.P2TURN, statusDict[BattleState.P2TURN]));
+            if (statusDict[BattleState.P3TURN] != null && statusDict[BattleState.P3TURN].isAlive)
+                speeds.Add((statusDict[BattleState.P3TURN].currSPD, statusDict[BattleState.P3TURN].speed + statusDict[BattleState.P3TURN].boostSPD, BattleState.P3TURN, statusDict[BattleState.P3TURN]));
+            if (statusDict[BattleState.E1TURN] != null)
+                speeds.Add((statusDict[BattleState.E1TURN].currSPD, statusDict[BattleState.E1TURN].speed + statusDict[BattleState.E1TURN].boostSPD, BattleState.E1TURN, statusDict[BattleState.E1TURN]));
+            if (statusDict[BattleState.E2TURN] != null && statusDict[BattleState.E2TURN].isAlive)
+                speeds.Add((statusDict[BattleState.E2TURN].currSPD, statusDict[BattleState.E2TURN].speed + statusDict[BattleState.E2TURN].boostSPD, BattleState.E2TURN, statusDict[BattleState.E2TURN]));
+            if (statusDict[BattleState.E3TURN] != null && statusDict[BattleState.E3TURN].isAlive)
+                speeds.Add((statusDict[BattleState.E3TURN].currSPD, statusDict[BattleState.E3TURN].speed + statusDict[BattleState.E3TURN].boostSPD, BattleState.E3TURN, statusDict[BattleState.E3TURN]));
 
             //Debug.Log("non-null Speeds Got Added");
             //2. Go through the list in reverse, remove ineligible ones from list into another list for BufferUp
@@ -576,12 +1018,22 @@ public class BattleSystemManager : MonoBehaviour
 
                 //Debug.Log("Reduce picked");
 
+                TurnQueuePanel.transform.GetChild(0).GetComponent<UnityEngine.UI.Image>().color = debugSetColor("null");
+                int order = 1;
                 foreach ((int, int, BattleState, CharacterStatus) arg in speeds)
                 {
                     turnQueue.Enqueue(arg.Item3);
                     arg.Item4.currSPD -= reduce;
+
+                    //Mark turn queue coloration as well, WARNING THAT IT WILL BREAK WITH 6 RIGHT NOW
+                    TurnQueuePanel.transform.GetChild(order).GetComponent<UnityEngine.UI.Image>().color = debugSetColor(arg.Item4.fuseName);
+                    order++;
+
                 }
                 //Debug.Log("Enqueuement done");
+                turn += 1;
+                turner.text = $"Turn {turn}";
+
             }
             else
             {
@@ -603,6 +1055,11 @@ public class BattleSystemManager : MonoBehaviour
     {
         //Debug.Log("They Go Next!");
         var val = turnQueue.Dequeue();
+
+        for (int i = 0; i < TurnQueuePanel.transform.childCount-1; i++) 
+        {
+            TurnQueuePanel.transform.GetChild(i).GetComponent<UnityEngine.UI.Image>().color = TurnQueuePanel.transform.GetChild(i+1).GetComponent<UnityEngine.UI.Image>().color;
+        }
 
         switch (val)
         {
@@ -631,6 +1088,24 @@ public class BattleSystemManager : MonoBehaviour
                 yield return StartCoroutine(E3Turn());
                 break;
         }
+    }
+
+    //Special "Animation" for moving a ball over
+    public IEnumerator MoveOverSeconds(GameObject objectToMove, Vector3 start, Vector3 end, float seconds)
+    {
+        objectToMove.SetActive(true);
+        objectToMove.transform.position = start;
+
+        float elapsedTime = 0;
+        Vector3 startingPos = objectToMove.transform.position;
+        while (elapsedTime < seconds)
+        {
+            objectToMove.transform.position = Vector3.Lerp(startingPos, end, (elapsedTime / seconds));
+            elapsedTime += Time.deltaTime;
+            yield return new WaitForEndOfFrame();
+        }
+        objectToMove.transform.position = end;
+        objectToMove.SetActive(false);
     }
 
 

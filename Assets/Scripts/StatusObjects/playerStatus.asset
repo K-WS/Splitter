@@ -13,21 +13,28 @@ MonoBehaviour:
   m_Name: playerStatus
   m_EditorClassIdentifier: 
   characterGO: {fileID: 0}
-  charName: Main
+  charName: normal
+  fuseName: normal
+  isAlive: 1
   position:
   - -0.70986426
   - 1.5
   - 1.4438176
+  placement: 0
   level: 1
-  maxHealth: 261
+  maxHealth: 300
   maxEnergy: 135
   attack: 20
   defense: 10
   speed: 25
-  currHealth: 261
+  currHealth: 300
   currEnergy: 135
-  currSPD: 30
-  HPSplit: 78
+  currSPD: 0
+  HPSplit: 90
   boostATK: 0
   boostDEF: 0
   boostSPD: 0
+  DoT: 0
+  DoT_Turns: 0
+  Regen: 0
+  Regen_Turns: 0

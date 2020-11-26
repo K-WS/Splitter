@@ -6,8 +6,11 @@ public class CharacterStatus : ScriptableObject
 {
     //TODO: A lot of code here is meant for the main character, but everyone has access to it...
     public GameObject characterGO; //Should contain battle animations
-    public string  charName = "name";
-    public float[] position = new float[3];
+    public string   charName = "name";
+    public string   fuseName = "name";
+    public bool     isAlive = true;
+    public float[]  position = new float[3];
+    public int      placement = 0;
 
     /// <summary>
     /// Main stats that the player should see
@@ -37,6 +40,11 @@ public class CharacterStatus : ScriptableObject
     public int boostDEF = 0; //More/less defense
     public int boostSPD = 0; //Haste effects (higher turn rate/speed)
 
+    public int DoT = 0;
+    public int DoT_Turns = 0;
+    public int Regen = 0;
+    public int Regen_Turns = 0;
+
 
     public void resetStats()
     {
@@ -45,8 +53,13 @@ public class CharacterStatus : ScriptableObject
         boostATK = 0;
         boostDEF = 0;
         boostSPD = 0;
+        DoT = 0;
+        Regen = 0;
+        DoT_Turns = 0;
+        Regen_Turns = 0;
+        isAlive = true;
 
-        HPSplit = Mathf.FloorToInt(maxHealth / 100f * 30f);
+    HPSplit = Mathf.FloorToInt(maxHealth / 100f * 30f);
     }
 
     public void BufferUP()
@@ -76,6 +89,45 @@ public class CharacterStatus : ScriptableObject
     public void ResetEN()
     {
         currEnergy = maxEnergy;
+    }
+
+    public int updateStatuses()
+    {
+        int totalDamage = 0;
+        //Damge damage and heal DoT's, update timers
+        if(DoT_Turns > 0)
+        {
+            totalDamage += DoT;
+            DoT_Turns -= 1;
+        }
+        else
+            DoT = 0;
+        if (Regen_Turns > 0)
+        {
+            totalDamage -= Regen;
+            Regen_Turns -= 1;
+        }
+        else
+            Regen = 0;
+
+        //Update Boosts
+        if (boostATK > 0)
+            boostATK = Mathf.Max(0, boostATK - 5);
+        else if (boostATK < 0)
+            boostATK = Mathf.Min(boostATK + 5, 0);
+
+        if (boostDEF > 0)
+            boostDEF = Mathf.Max(0, boostDEF - 5);
+        else if (boostDEF < 0)
+            boostDEF = Mathf.Min(boostDEF + 5, 0);
+
+        if (boostSPD > 0)
+            boostSPD = Mathf.Max(0, boostSPD - 5);
+        else if (boostSPD < 0)
+            boostSPD = Mathf.Min(boostSPD + 5, 0);
+
+        //Return total tally of DoT's for statusHUD to update
+        return totalDamage;
     }
 
 

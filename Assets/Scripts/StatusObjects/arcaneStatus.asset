@@ -13,21 +13,27 @@ MonoBehaviour:
   m_Name: arcaneStatus
   m_EditorClassIdentifier: 
   characterGO: {fileID: 0}
-  charName: Arcane
+  charName: arcane
+  fuseName: arcane
   position:
   - -0.5183393
   - 1.5
   - 1.3060118
+  placement: 1
   level: 1
-  maxHealth: 250
+  maxHealth: 78
   maxEnergy: 74
   attack: 22
   defense: 10
   speed: 22
-  currHealth: 148
+  currHealth: 78
   currEnergy: 74
-  currSPD: 30
-  HPSplit: 0
+  currSPD: 0
+  HPSplit: 23
   boostATK: 0
   boostDEF: 0
   boostSPD: 0
+  DoT: 0
+  DoT_Turns: 0
+  Regen: 0
+  Regen_Turns: 0

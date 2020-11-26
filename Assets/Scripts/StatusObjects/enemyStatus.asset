@@ -13,21 +13,28 @@ MonoBehaviour:
   m_Name: enemyStatus
   m_EditorClassIdentifier: 
   characterGO: {fileID: 0}
-  charName: Poltergeist
+  charName: enemy
+  fuseName: enemy
+  isAlive: 1
   position:
   - 0
   - 0
   - 0
+  placement: 0
   level: 1
-  maxHealth: 200
+  maxHealth: 300
   maxEnergy: 100
   attack: 15
   defense: 7
   speed: 15
-  currHealth: 200
+  currHealth: 250
   currEnergy: 100
   currSPD: 0
-  HPSplit: 60
+  HPSplit: 90
   boostATK: 0
   boostDEF: 0
   boostSPD: 0
+  DoT: 15
+  DoT_Turns: 2
+  Regen: 0
+  Regen_Turns: -1

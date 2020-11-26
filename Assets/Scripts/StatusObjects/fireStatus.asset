@@ -13,21 +13,27 @@ MonoBehaviour:
   m_Name: fireStatus
   m_EditorClassIdentifier: 
   characterGO: {fileID: 0}
-  charName: Fire
+  charName: fire
+  fuseName: fire
   position:
   - -0.5183393
   - 1.5
   - 1.3060118
+  placement: 1
   level: 1
-  maxHealth: 75
+  maxHealth: 78
   maxEnergy: 55
   attack: 17
   defense: 10
   speed: 30
-  currHealth: 75
+  currHealth: 78
   currEnergy: 55
-  currSPD: 25
+  currSPD: 0
   HPSplit: 22
   boostATK: 0
   boostDEF: 0
   boostSPD: 0
+  DoT: 0
+  DoT_Turns: 0
+  Regen: 0
+  Regen_Turns: 0
