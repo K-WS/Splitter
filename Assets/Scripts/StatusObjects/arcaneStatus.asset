@@ -15,21 +15,22 @@ MonoBehaviour:
   characterGO: {fileID: 0}
   charName: arcane
   fuseName: arcane
+  isAlive: 1
   position:
   - -0.5183393
   - 1.5
   - 1.3060118
-  placement: 1
+  placement: 2
   level: 1
-  maxHealth: 78
+  maxHealth: 90
   maxEnergy: 74
   attack: 22
   defense: 10
   speed: 22
-  currHealth: 78
+  currHealth: 68
   currEnergy: 74
-  currSPD: 0
-  HPSplit: 23
+  currSPD: 7
+  HPSplit: 18
   boostATK: 0
   boostDEF: 0
   boostSPD: 0

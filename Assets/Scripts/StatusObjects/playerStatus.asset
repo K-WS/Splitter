@@ -22,15 +22,15 @@ MonoBehaviour:
   - 1.4438176
   placement: 0
   level: 1
-  maxHealth: 300
+  maxHealth: 275
   maxEnergy: 135
   attack: 20
   defense: 10
   speed: 25
-  currHealth: 300
+  currHealth: 275
   currEnergy: 135
-  currSPD: 0
-  HPSplit: 90
+  currSPD: 20
+  HPSplit: 33
   boostATK: 0
   boostDEF: 0
   boostSPD: 0

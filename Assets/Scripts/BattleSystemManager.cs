@@ -64,6 +64,17 @@ public class BattleSystemManager : MonoBehaviour
     public RectTransform TurnQueuePanel;
 
     public GameObject flyingBall;
+    public Material flyingBallColor;
+    public GameObject flyingBall2;
+    public Material flyingBall2Color;
+    public GameObject flyingBall3;
+    public Material flyingBall3Color;
+
+    public Shader MainColor;
+    public Shader IceColor;
+    public Shader ArcaneColor;
+    public Shader FireColor;
+    public Shader EnemyColor;
 
 
 
@@ -95,10 +106,6 @@ public class BattleSystemManager : MonoBehaviour
     IEnumerator BeginBattle()
     {
         // Spawn main characters on the platforms
-        //Debug.Log(P1Status);
-        //Debug.Log(E1Status);
-        //Debug.Log(P1Status.characterGO);
-        //Debug.Log(E1Status.characterGO);
         //enemy1 = Instantiate(E1Status.characterGO, E1BattlePos); enemy1.SetActive(true);
         //player1 = Instantiate(P1Status.characterGO.transform.GetChild(0).gameObject, P1BattlePos); player1.SetActive(true);
         // make the characters models invisible in the beginning ?
@@ -107,9 +114,12 @@ public class BattleSystemManager : MonoBehaviour
 
         //Call stat resets 
         P1Status.resetStats();
+        P1Status.ResetHP(); //Only called for this project... in real game this should be disabled
+        P1Status.ResetEN(); //Same here
         P1Status.fuseName = P1Status.charName;
         E1Status.resetStats();
         E1Status.ResetHP();
+        E1Status.ResetEN();
 
         // set the characters stats in HUD displays
         playerStatusHUD.SetStatusHUD(0, P1Status);
@@ -135,7 +145,6 @@ public class BattleSystemManager : MonoBehaviour
 
     IEnumerator P1Turn()
     {
-        Debug.Log(battleState + " on placement " + statusDict[battleState].placement);
         float DMG = statusDict[battleState].updateStatuses();
 
         if (statusDict[battleState].boostATK > 0)
@@ -151,7 +160,6 @@ public class BattleSystemManager : MonoBehaviour
 
     IEnumerator P2Turn()
     {
-        Debug.Log(battleState + " on placement " + statusDict[battleState].placement);
         float DMG = statusDict[battleState].updateStatuses();
 
         if (statusDict[battleState].boostATK > 0)
@@ -166,7 +174,6 @@ public class BattleSystemManager : MonoBehaviour
 
     IEnumerator P3Turn()
     {
-        Debug.Log(battleState + " on placement " + statusDict[battleState].placement);
         float DMG = statusDict[battleState].updateStatuses();
 
         if (statusDict[battleState].boostATK > 0)
@@ -201,14 +208,13 @@ public class BattleSystemManager : MonoBehaviour
 
     IEnumerator E1Turn()
     {
-        Debug.Log(battleState);
 
         yield return new WaitForSeconds(0.5f); SetSidePanel(false, false, false, false, false, false, false);
 
         int DMG = statusDict[battleState].updateStatuses();
         if(DMG > 0)
         {
-            enemyStatusHUD.LoseHP(0, statusDict[battleState], DMG);
+            enemyStatusHUD.LoseHP(0, statusDict[battleState], DMG, new Color(1, 0.7f, 0, 1));
             yield return new WaitForSeconds(0.6f);
 
             if (statusDict[battleState].currHealth <= 0)
@@ -224,9 +230,22 @@ public class BattleSystemManager : MonoBehaviour
         else
             enemyStatusHUD.Debuff(statusDict[battleState].placement, false);
 
+        float chance = UnityEngine.Random.Range(0f, 1f);
 
-        (CharacterStatus, int, GameObject) toAttack = EChooseTarget();
-        yield return StartCoroutine(EnemyDoesAttack(enemy1Debug, E1Status, toAttack.Item3, toAttack.Item1, toAttack.Item2));
+        //Additional check to determine if the enemy can use a special move
+        if ( (statusDict[BattleState.P2TURN] != null || statusDict[BattleState.P3TURN] != null)
+            && statusDict[battleState].currEnergy >= 20 
+            && chance <= 0.3f)
+        {
+            enemyStatusHUD.LoseEN(statusDict[battleState].placement, statusDict[battleState], 20);
+            yield return StartCoroutine(EnemyDoesAttackAll(enemy1Debug, E1Status));
+        }
+        else
+        {
+            (CharacterStatus, int, GameObject) toAttack = EChooseTarget();
+            yield return StartCoroutine(EnemyDoesAttack(enemy1Debug, E1Status, toAttack.Item3, toAttack.Item1, toAttack.Item2));
+        }
+        
     }
 
     IEnumerator E2Turn()
@@ -290,21 +309,21 @@ public class BattleSystemManager : MonoBehaviour
 
     IEnumerator P1ATK()
     {
-        StartCoroutine(MoveOverSeconds(flyingBall,player1Debug.transform.position, enemy1Debug.transform.position, 0.5f));
+        StartCoroutine(MoveOverSeconds(flyingBall,player1Debug.transform.position, enemy1Debug.transform.position, 0.5f, debugSetShader(statusDict[battleState].fuseName)));
         yield return new WaitForSeconds(0.5f);
         yield return StartCoroutine(PlayerDoesAttack(player1Debug, statusDict[battleState], E1Status, 0));
     }
 
     IEnumerator P2ATK()
     {
-        StartCoroutine(MoveOverSeconds(flyingBall, player2Debug.transform.position, enemy1Debug.transform.position, 0.5f));
+        StartCoroutine(MoveOverSeconds(flyingBall, player2Debug.transform.position, enemy1Debug.transform.position, 0.5f, debugSetShader(statusDict[battleState].fuseName)));
         yield return new WaitForSeconds(0.5f);
         yield return StartCoroutine(PlayerDoesAttack(player2Debug, statusDict[battleState], E1Status, 0));
     }
 
     IEnumerator P3ATK()
     {
-        StartCoroutine(MoveOverSeconds(flyingBall, player3Debug.transform.position, enemy1Debug.transform.position, 0.5f));
+        StartCoroutine(MoveOverSeconds(flyingBall, player3Debug.transform.position, enemy1Debug.transform.position, 0.5f, debugSetShader(statusDict[battleState].fuseName)));
         yield return new WaitForSeconds(0.5f);
         yield return StartCoroutine(PlayerDoesAttack(player3Debug, statusDict[battleState], E1Status, 0));
     }
@@ -548,7 +567,28 @@ public class BattleSystemManager : MonoBehaviour
         return col;
     }
 
-    
+    public Shader debugSetShader(string name)
+    {
+        switch (name)
+        {
+            case "fire":
+                return FireColor;
+            case "ice":
+                return IceColor;
+            case "arcane":
+                return ArcaneColor;
+            case "normal":
+                return MainColor;
+            case "enemy":
+                return EnemyColor;
+            case "null":
+                return MainColor;
+        }
+
+        return MainColor;
+    }
+
+
 
     /*
      ---------------------------------------------------------
@@ -560,7 +600,6 @@ public class BattleSystemManager : MonoBehaviour
     {
         if(statusDict[battleState].currEnergy >= 20)
         {
-            Debug.Log(statusDict[battleState].placement);
             playerStatusHUD.LoseEN(statusDict[battleState].placement, statusDict[battleState], 20);
             choicesPanel.gameObject.SetActive(false);
             StartCoroutine(STRATK(playerDebuggerList[statusDict[battleState].placement], statusDict[battleState], E1Status, 0));
@@ -571,14 +610,14 @@ public class BattleSystemManager : MonoBehaviour
     IEnumerator STRATK(GameObject player, CharacterStatus PStatus, CharacterStatus target, int who)
     {
         //player.GetComponent<Animator>().SetTrigger("Attack");
-        StartCoroutine(MoveOverSeconds(flyingBall, player.transform.position, enemy1Debug.transform.position, 0.5f));
+        StartCoroutine(MoveOverSeconds(flyingBall, player.transform.position, enemy1Debug.transform.position, 0.5f, debugSetShader(statusDict[battleState].fuseName)));
         yield return new WaitForSeconds(0.5f);
 
         float acc = 1;
         int damage = Mathf.CeilToInt(2*acc *
                                     ((PStatus.attack + PStatus.boostATK) * UnityEngine.Random.Range(0.7f, 1f) /
                                        Mathf.Ceil(0.1f * target.defense)));
-        enemyStatusHUD.LoseHP(who, target, damage);
+        enemyStatusHUD.LoseHP(who, target, damage, Color.white);
 
         yield return new WaitForSeconds(1f);
         yield return StartCoroutine(IsMainEnemyDead());
@@ -674,7 +713,7 @@ public class BattleSystemManager : MonoBehaviour
 
     IEnumerator IceBall(GameObject player, CharacterStatus PStatus, CharacterStatus target, int who)
     {
-        StartCoroutine(MoveOverSeconds(flyingBall, player.transform.position, enemy1Debug.transform.position, 0.5f));
+        StartCoroutine(MoveOverSeconds(flyingBall, player.transform.position, enemy1Debug.transform.position, 0.5f, debugSetShader(statusDict[battleState].fuseName)));
         //player.GetComponent<Animator>().SetTrigger("Attack");
         yield return new WaitForSeconds(0.5f);
 
@@ -682,9 +721,8 @@ public class BattleSystemManager : MonoBehaviour
         int damage = Mathf.CeilToInt(1.3f * acc *
                                     ((PStatus.attack + PStatus.boostATK) * UnityEngine.Random.Range(0.7f, 1f) /
                                        Mathf.Ceil(0.1f * target.defense)));
-        Debug.Log($"Damage that Iceball should do is {damage}");
 
-        enemyStatusHUD.LoseHP(who, target, damage);
+        enemyStatusHUD.LoseHP(who, target, damage, Color.white);
 
         yield return new WaitForSeconds(1f);
         yield return StartCoroutine(IsMainEnemyDead());
@@ -702,7 +740,7 @@ public class BattleSystemManager : MonoBehaviour
     IEnumerator Stagger(GameObject player, CharacterStatus PStatus, BattleState target, int who)
     {
         //player.GetComponent<Animator>().SetTrigger("Attack");
-        StartCoroutine(MoveOverSeconds(flyingBall, player.transform.position, enemy1Debug.transform.position, 0.5f));
+        StartCoroutine(MoveOverSeconds(flyingBall, player.transform.position, enemy1Debug.transform.position, 0.5f, debugSetShader(statusDict[battleState].fuseName)));
         yield return new WaitForSeconds(0.5f);
 
         int i = 0;
@@ -738,14 +776,14 @@ public class BattleSystemManager : MonoBehaviour
     IEnumerator Bolt(GameObject player, CharacterStatus PStatus, CharacterStatus target, int who)
     {
         //player.GetComponent<Animator>().SetTrigger("Attack");
-        StartCoroutine(MoveOverSeconds(flyingBall, player.transform.position, enemy1Debug.transform.position, 0.5f));
+        StartCoroutine(MoveOverSeconds(flyingBall, player.transform.position, enemy1Debug.transform.position, 0.5f, debugSetShader(statusDict[battleState].fuseName)));
         yield return new WaitForSeconds(0.5f);
 
         float acc = 1;
         int damage = Mathf.CeilToInt(1.4f * acc *
                                     ((PStatus.attack + PStatus.boostATK) * UnityEngine.Random.Range(0.7f, 1f) /
                                        Mathf.Ceil(0.1f * target.defense)));
-        enemyStatusHUD.LoseHP(who, target, damage);
+        enemyStatusHUD.LoseHP(who, target, damage, Color.white);
 
         yield return new WaitForSeconds(1f);
         yield return StartCoroutine(IsMainEnemyDead());
@@ -766,9 +804,7 @@ public class BattleSystemManager : MonoBehaviour
         //player.GetComponent<Animator>().SetTrigger("Attack");
         yield return new WaitForSeconds(0.5f);
 
-        //TODO: Instead call some function in CharacterStatus that gives the icon?
         PStatus.boostATK = 20;
-        UnityEngine.Debug.Log("Buffing "+ battleState +" on position " + statusDict[battleState].placement);
         playerStatusHUD.Buff(statusDict[battleState].placement, true);
 
         yield return new WaitForSeconds(1f);
@@ -788,14 +824,14 @@ public class BattleSystemManager : MonoBehaviour
     IEnumerator Fireball(GameObject player, CharacterStatus PStatus, CharacterStatus target, int who)
     {
         //player.GetComponent<Animator>().SetTrigger("Attack");
-        StartCoroutine(MoveOverSeconds(flyingBall, player.transform.position, enemy1Debug.transform.position, 0.5f));
+        StartCoroutine(MoveOverSeconds(flyingBall, player.transform.position, enemy1Debug.transform.position, 0.5f, debugSetShader(statusDict[battleState].fuseName)));
         yield return new WaitForSeconds(0.5f);
 
         float acc = 1;
         int damage = Mathf.CeilToInt(1.6f * acc *
                                     ((PStatus.attack + PStatus.boostATK) * UnityEngine.Random.Range(0.7f, 1f) /
                                        Mathf.Ceil(0.1f * target.defense)));
-        enemyStatusHUD.LoseHP(who, target, damage);
+        enemyStatusHUD.LoseHP(who, target, damage, Color.white);
 
         yield return new WaitForSeconds(1f);
         yield return StartCoroutine(IsMainEnemyDead());
@@ -814,7 +850,7 @@ public class BattleSystemManager : MonoBehaviour
     IEnumerator Flame(GameObject player, CharacterStatus PStatus, CharacterStatus target, int who)
     {
         //player.GetComponent<Animator>().SetTrigger("Attack");
-        StartCoroutine(MoveOverSeconds(flyingBall, player.transform.position, enemy1Debug.transform.position, 0.5f));
+        StartCoroutine(MoveOverSeconds(flyingBall, player.transform.position, enemy1Debug.transform.position, 0.5f, debugSetShader(statusDict[battleState].fuseName)));
         yield return new WaitForSeconds(0.5f);
 
         target.DoT = 15;
@@ -847,7 +883,7 @@ public class BattleSystemManager : MonoBehaviour
         //Debug.Log($"And finally divided with {Mathf.Ceil(0.1f * E1Status.defense)}");
         //Debug.Log(damage);
 
-        enemyStatusHUD.LoseHP(who, target, damage);
+        enemyStatusHUD.LoseHP(who, target, damage, Color.white);
 
         yield return new WaitForSeconds(1f);
         yield return StartCoroutine(IsMainEnemyDead());
@@ -867,12 +903,11 @@ public class BattleSystemManager : MonoBehaviour
 
     IEnumerator EnemyDoesAttack(GameObject enemy, CharacterStatus EStatus, GameObject player, CharacterStatus target, int who)
     {
-        //TODO: Some place will eventually need a spot for enemies to pick a special attack based on chance?
         // Animate attack
         //enemy.GetComponent<Animator>().SetTrigger("Attack");
         //yield return new WaitForSeconds(1);
-        //TODO: Decide who gets attacked and based on that pick them as target (debug)
-        StartCoroutine(MoveOverSeconds(flyingBall, enemy.transform.position, player.transform.position, 0.5f));
+
+        StartCoroutine(MoveOverSeconds(flyingBall, enemy.transform.position, player.transform.position, 0.5f, debugSetShader(statusDict[battleState].fuseName)));
         yield return new WaitForSeconds(0.5f);
 
         float acc = 1;
@@ -880,16 +915,56 @@ public class BattleSystemManager : MonoBehaviour
                                     ((EStatus.attack + EStatus.boostATK) * UnityEngine.Random.Range(0.7f, 1f) /
                                        Mathf.Ceil(0.1f * target.defense)));
 
-        playerStatusHUD.LoseHP(who, target, damage);
+        playerStatusHUD.LoseHP(who, target, damage, Color.white);
         yield return new WaitForSeconds(1f);
 
         yield return StartCoroutine(IsPlayerDead());
     }
 
+    IEnumerator EnemyDoesAttackAll(GameObject enemy, CharacterStatus EStatus)
+    {
+        // Animate attack
+        //enemy.GetComponent<Animator>().SetTrigger("Attack");
+        //yield return new WaitForSeconds(1);
+
+        List<CharacterStatus> activePlayers = new List<CharacterStatus>();
+        activePlayers.Add(P1Status);
+        if (statusDict[BattleState.P2TURN] != null)
+            activePlayers.Add(statusDict[BattleState.P2TURN]);
+        if (statusDict[BattleState.P3TURN] != null)
+            activePlayers.Add(statusDict[BattleState.P3TURN]);
+
+        List<GameObject> balls = new List<GameObject>();
+        balls.Add(flyingBall);
+        balls.Add(flyingBall2);
+        balls.Add(flyingBall3);
+
+        for (int i = 0; i < activePlayers.Count; i++)
+        {
+            StartCoroutine(MoveOverSeconds(balls[i], 
+                enemy.transform.position,
+                playerDebuggerList[activePlayers[i].placement].transform.position, 
+                0.5f,
+                debugSetShader(statusDict[battleState].fuseName)));
+        }
+        yield return new WaitForSeconds(0.5f);
+
+        for (int i = 0; i < activePlayers.Count; i++)
+        {
+            float acc = 1;
+            int damage = Mathf.CeilToInt(1.5f * acc *
+                                        ((EStatus.attack + EStatus.boostATK) * UnityEngine.Random.Range(0.7f, 1f) /
+                                            Mathf.Ceil(0.1f * activePlayers[i].defense)));
+
+            playerStatusHUD.LoseHP(activePlayers[i].placement, activePlayers[i], damage, Color.white);
+        }
+
+        yield return new WaitForSeconds(1f);
+        yield return StartCoroutine(IsPlayerDead());
+    }
+
     IEnumerator IsPlayerDead()
     {
-        //TODO: WARNING     
-        //TODO: THERE IS CURRENTLY NO TRIGGER FOR SPLITTED CHARACTERS TO BE DEFEATED AND DEACTIVATED
 
         if(statusDict[BattleState.P2TURN] != null)
         {
@@ -966,11 +1041,9 @@ public class BattleSystemManager : MonoBehaviour
      */
     IEnumerator WhoGoesNext()
     {
-        //Debug.Log("Who Goes Next?");
         //0. Check if stack is empty, if not, then you know who should go next
         if (turnQueue.Count == 0)
         {
-            //Debug.Log("Queue is empty");
             //1. Place non-null turn characters into list, to know which characters need BufferUp in worst case
             List<(int, int, BattleState, CharacterStatus)> speeds = new List<(int, int, BattleState, CharacterStatus)>();
 
@@ -988,7 +1061,6 @@ public class BattleSystemManager : MonoBehaviour
             if (statusDict[BattleState.E3TURN] != null && statusDict[BattleState.E3TURN].isAlive)
                 speeds.Add((statusDict[BattleState.E3TURN].currSPD, statusDict[BattleState.E3TURN].speed + statusDict[BattleState.E3TURN].boostSPD, BattleState.E3TURN, statusDict[BattleState.E3TURN]));
 
-            //Debug.Log("non-null Speeds Got Added");
             //2. Go through the list in reverse, remove ineligible ones from list into another list for BufferUp
             List<(int, int, BattleState, CharacterStatus)> clean = new List<(int, int, BattleState, CharacterStatus)>();
 
@@ -1002,21 +1074,14 @@ public class BattleSystemManager : MonoBehaviour
                 }
             }
 
-            //Debug.Log("Cleaning Done");
-
             //3. Check if there are any eligible characters, if not, send BufferUp for all non-null and finish
             if (speeds.Count != 0)
             {
-                //Debug.Log("Someone is eligible!");
                 //4. Sort based on current speed descending (fastest first).
                 speeds = speeds.OrderByDescending(x => x.Item1).ToList();
 
-                //Debug.Log("Speed ordered");
-
                 //5. You now have the character order, get subtractable, add order and reduce buffer
                 int reduce = speeds[speeds.Count-1].Item1;
-
-                //Debug.Log("Reduce picked");
 
                 TurnQueuePanel.transform.GetChild(0).GetComponent<UnityEngine.UI.Image>().color = debugSetColor("null");
                 int order = 1;
@@ -1030,14 +1095,12 @@ public class BattleSystemManager : MonoBehaviour
                     order++;
 
                 }
-                //Debug.Log("Enqueuement done");
                 turn += 1;
                 turner.text = $"Turn {turn}";
 
             }
             else
             {
-                //Debug.Log("Noone eligible");
                 foreach ((int, int, BattleState, CharacterStatus) arg in clean)
                     arg.Item4.BufferUP();
             }
@@ -1053,7 +1116,6 @@ public class BattleSystemManager : MonoBehaviour
 
     IEnumerator TheyGoNext()
     {
-        //Debug.Log("They Go Next!");
         var val = turnQueue.Dequeue();
 
         for (int i = 0; i < TurnQueuePanel.transform.childCount-1; i++) 
@@ -1091,8 +1153,11 @@ public class BattleSystemManager : MonoBehaviour
     }
 
     //Special "Animation" for moving a ball over
-    public IEnumerator MoveOverSeconds(GameObject objectToMove, Vector3 start, Vector3 end, float seconds)
+    public IEnumerator MoveOverSeconds(GameObject objectToMove, Vector3 start, Vector3 end, float seconds, Shader shade)
     {
+        //flyingBallColor.SetColor("albedo", col);
+        //flyingBallColor.color = col;
+        flyingBallColor.shader = shade;
         objectToMove.SetActive(true);
         objectToMove.transform.position = start;
 

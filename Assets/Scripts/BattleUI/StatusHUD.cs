@@ -104,11 +104,11 @@ public class StatusHUD : MonoBehaviour
     /// Their respective ScriptableObject, which is automatically known
     /// <param name="hp"></param>
     /// Amount of HP to lose
-    public void LoseHP(int who, CharacterStatus status, int hp)
+    public void LoseHP(int who, CharacterStatus status, int hp, Color damageType)
     {
         int realLoss = (int)Mathf.Min(hp, status.currHealth);
         StartCoroutine(GraduallySetStatusBar(who, status, realLoss, false, 10, 0.05f));
-        showDMG(who, hp, Color.white);
+        showDMG(who, hp, damageType);
     }
     /// <summary>
     /// The given character Gains a set amount of HP

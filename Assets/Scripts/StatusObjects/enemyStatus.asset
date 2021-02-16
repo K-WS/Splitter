@@ -22,19 +22,19 @@ MonoBehaviour:
   - 0
   placement: 0
   level: 1
-  maxHealth: 300
+  maxHealth: 500
   maxEnergy: 100
   attack: 15
   defense: 7
   speed: 15
-  currHealth: 250
-  currEnergy: 100
+  currHealth: 40
+  currEnergy: 60
   currSPD: 0
   HPSplit: 90
   boostATK: 0
   boostDEF: 0
   boostSPD: 0
-  DoT: 15
-  DoT_Turns: 2
+  DoT: 0
+  DoT_Turns: 0
   Regen: 0
-  Regen_Turns: -1
+  Regen_Turns: 0
